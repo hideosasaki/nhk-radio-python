@@ -97,5 +97,6 @@ def parse_series_detail(data: dict[str, Any]) -> OndemandSeriesDetail:
     return OndemandSeriesDetail(
         series_title=data["title"],
         corner_title=data.get("corner_name", ""),
+        thumbnail_url=data.get("thumbnail_url"),
         episodes=episodes,
     )

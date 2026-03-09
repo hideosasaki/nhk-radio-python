@@ -71,4 +71,5 @@ class OndemandSeriesDetail:
 
     series_title: str
     corner_title: str
+    thumbnail_url: str | None
     episodes: list[OndemandEpisode]

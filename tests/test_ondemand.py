@@ -43,6 +43,7 @@ def test_parse_new_arrivals_has_thumbnail(new_arrivals_json: dict) -> None:
 def test_parse_series_detail(series_detail_json: dict) -> None:
     result = parse_series_detail(series_detail_json)
     assert result.series_title
+    assert result.thumbnail_url
     assert len(result.episodes) > 0
 
     ep = result.episodes[0]
@@ -79,6 +80,7 @@ def test_parse_new_arrivals_empty() -> None:
 def test_parse_series_detail_no_episodes() -> None:
     result = parse_series_detail({"title": "Test", "corner_name": "", "episodes": []})
     assert result.series_title == "Test"
+    assert result.thumbnail_url is None
     assert result.episodes == []
 
 
