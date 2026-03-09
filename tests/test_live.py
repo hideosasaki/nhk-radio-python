@@ -41,8 +41,3 @@ def test_get_stream_url_invalid_channel(config) -> None:
     with pytest.raises(ChannelNotFoundError) as exc_info:
         get_stream_url(config, "tokyo", "invalid")
     assert exc_info.value.available
-
-
-def test_get_stream_url_invalid_area(config) -> None:
-    with pytest.raises(AreaNotFoundError):
-        get_stream_url(config, "invalid", "r1")

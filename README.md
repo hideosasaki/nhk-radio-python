@@ -85,15 +85,15 @@ if r1.following:
 
 #### 番組の切り替わりを監視
 
-`watch_now_on_air()` は番組が変わるたびに通知する async iterator です。
+`listen_now_on_air()` は番組が変わるたびに通知する async iterator です。
 
 ```python
 # 全チャンネルを監視（60秒間隔でポーリング）
-async for info in client.watch_now_on_air(interval=60):
+async for info in client.listen_now_on_air(interval=60):
     print(f"番組が変わりました: [{info.channel_name}] {info.present.title}")
 
 # 特定チャンネルのみ監視
-async for info in client.watch_now_on_air(channel_id="fm", interval=30):
+async for info in client.listen_now_on_air(channel_id="fm", interval=30):
     print(f"FM: {info.present.title}")
 ```
 

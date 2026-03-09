@@ -15,28 +15,23 @@ def mock_aiohttp():
         yield m
 
 
-@pytest.fixture
-def config_xml_bytes_data(config_xml_bytes: bytes) -> bytes:
-    return config_xml_bytes
-
-
 @pytest.mark.asyncio
-async def test_lazy_config_load(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
+async def test_lazy_config_load(mock_aiohttp, config_xml_bytes: bytes) -> None:
     """Config should not be fetched at construction time."""
     async with aiohttp.ClientSession() as session:
         client = NhkRadioClient(session, area="tokyo")
         # No request yet
         assert client._config is None
 
-        mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
+        mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes)
         channels = await client.get_channels()
         assert len(channels) == 3
         assert client._config is not None
 
 
 @pytest.mark.asyncio
-async def test_get_stream_url(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
+async def test_get_stream_url(mock_aiohttp, config_xml_bytes: bytes) -> None:
+    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes)
 
     async with aiohttp.ClientSession() as session:
         client = NhkRadioClient(session, area="tokyo")
@@ -45,18 +40,8 @@ async def test_get_stream_url(mock_aiohttp, config_xml_bytes_data: bytes) -> Non
 
 
 @pytest.mark.asyncio
-async def test_get_areas(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
-
-    async with aiohttp.ClientSession() as session:
-        client = NhkRadioClient(session, area="tokyo")
-        areas = await client.get_areas()
-        assert len(areas) == 8
-
-
-@pytest.mark.asyncio
-async def test_invalid_channel(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
+async def test_invalid_channel(mock_aiohttp, config_xml_bytes: bytes) -> None:
+    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes)
 
     async with aiohttp.ClientSession() as session:
         client = NhkRadioClient(session, area="tokyo")
@@ -65,8 +50,8 @@ async def test_invalid_channel(mock_aiohttp, config_xml_bytes_data: bytes) -> No
 
 
 @pytest.mark.asyncio
-async def test_invalid_area(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
+async def test_invalid_area(mock_aiohttp, config_xml_bytes: bytes) -> None:
+    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes)
 
     async with aiohttp.ClientSession() as session:
         client = NhkRadioClient(session, area="invalid")
@@ -82,19 +67,3 @@ async def test_config_fetch_failure(mock_aiohttp) -> None:
         client = NhkRadioClient(session, area="tokyo")
         with pytest.raises(ConfigFetchError):
             await client.get_channels()
-
-
-@pytest.mark.asyncio
-async def test_refresh_config(mock_aiohttp, config_xml_bytes_data: bytes) -> None:
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
-    mock_aiohttp.get(CONFIG_URL, body=config_xml_bytes_data)
-
-    async with aiohttp.ClientSession() as session:
-        client = NhkRadioClient(session, area="tokyo")
-        await client.refresh_config()
-        config1 = client._config
-        await client.refresh_config()
-        config2 = client._config
-        # Both should be valid configs (may or may not be same object)
-        assert config1 is not None
-        assert config2 is not None

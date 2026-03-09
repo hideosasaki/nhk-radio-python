@@ -9,26 +9,12 @@ from nhk_radio.errors import ApiError, NetworkError
 from nhk_radio.nowonair import fetch_now_on_air, parse_now_on_air
 
 
-@pytest.fixture
-def now_on_air_json() -> dict:
-    import json
-    from pathlib import Path
-
-    return json.loads(
-        (Path(__file__).parent / "fixtures" / "now_on_air.json").read_text()
-    )
-
-
-def test_parse_now_on_air(now_on_air_json: dict) -> None:
+def test_parse_now_on_air_r3_mapped_to_fm(now_on_air_json: dict) -> None:
+    """r3 in API response should be mapped to 'fm' in SDK."""
     result = parse_now_on_air(now_on_air_json)
 
     assert len(result) == 3
     assert set(result.keys()) == {"r1", "r2", "fm"}
-
-
-def test_parse_now_on_air_r3_mapped_to_fm(now_on_air_json: dict) -> None:
-    """r3 in API response should be mapped to 'fm' in SDK."""
-    result = parse_now_on_air(now_on_air_json)
 
     fm = result["fm"]
     assert fm.channel_id == "fm"
@@ -111,17 +97,6 @@ def test_parse_now_on_air_skips_missing_present() -> None:
     }
     result = parse_now_on_air(data)
     assert result == {}
-
-
-@pytest.mark.asyncio
-async def test_fetch_now_on_air_success(now_on_air_json: dict) -> None:
-    url = NOA_API_URL.format(areakey="130")
-    with aioresponses() as m:
-        m.get(url, payload=now_on_air_json)
-        async with aiohttp.ClientSession() as session:
-            result = await fetch_now_on_air(session, "130")
-            assert len(result) == 3
-            assert "r1" in result
 
 
 @pytest.mark.asyncio

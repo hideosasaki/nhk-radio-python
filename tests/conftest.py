@@ -35,3 +35,10 @@ def series_detail_json() -> dict:
     return json.loads((FIXTURES_DIR / "series_detail.json").read_text())
 
 
+@pytest.fixture
+def now_on_air_json() -> dict:
+    """Load the now-on-air JSON fixture."""
+    import json
+
+    return json.loads((FIXTURES_DIR / "now_on_air.json").read_text())
+

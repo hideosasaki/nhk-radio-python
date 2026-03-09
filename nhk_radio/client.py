@@ -125,7 +125,7 @@ class NhkRadioClient:
         area = get_area(config, self._area)
         return await fetch_now_on_air(self._session, area.areakey)
 
-    async def watch_now_on_air(
+    async def listen_now_on_air(
         self,
         channel_id: str | None = None,
         *,
@@ -134,7 +134,7 @@ class NhkRadioClient:
         """Yield NowOnAirInfo whenever the current program changes.
 
         Args:
-            channel_id: Watch a specific channel, or None for all.
+            channel_id: Listen to a specific channel, or None for all.
             interval: Polling interval in seconds (default: 60).
 
         Yields:
