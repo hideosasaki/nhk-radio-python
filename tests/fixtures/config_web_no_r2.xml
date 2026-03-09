@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<radiru_config>
+	<info><![CDATA[/radio/include/oshirase.txt]]></info>
+	<stream_url>
+		<data>
+			<areajp>東京</areajp>
+			<area>tokyo</area>
+			<apikey>001</apikey>
+			<areakey>130</areakey>
+			<r1hls><![CDATA[https://simul.drdi.st.nhk/live/3/joined/master.m3u8]]></r1hls>
+			<fmhls><![CDATA[https://simul.drdi.st.nhk/live/5/joined/master.m3u8]]></fmhls>
+		</data>
+		<data>
+			<areajp>大阪</areajp>
+			<area>osaka</area>
+			<apikey>200</apikey>
+			<areakey>270</areakey>
+			<r1hls><![CDATA[https://simul.drdi.st.nhk/live/12/joined/master.m3u8]]></r1hls>
+			<fmhls><![CDATA[https://simul.drdi.st.nhk/live/13/joined/master.m3u8]]></fmhls>
+		</data>
+	</stream_url>
+	<url_program_noa><![CDATA[//api.nhk.jp/r7/pg/now/radio/{area}/now.json]]></url_program_noa>
+	<url_program_day><![CDATA[//api.nhk.jp/r7/pg/date/{service}/{area}/[YYYY-MM-DD].json]]></url_program_day>
+	<url_program_detail><![CDATA[//api.nhk.jp/r7/t/broadcastevent/be/{broadcastEventId}.json]]></url_program_detail>
+</radiru_config>
