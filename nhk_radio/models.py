@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from datetime import datetime
+from typing import Literal, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -23,7 +24,7 @@ class Program(Protocol):
     def series_name(self) -> str: ...
 
     @property
-    def act(self) -> str: ...
+    def series_site_id(self) -> str: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,74 +54,67 @@ class Area:
 
 
 @dataclass(frozen=True, slots=True)
-class NowOnAirProgram:
-    """A program currently on air (or adjacent: previous/following)."""
+class RadioProgram:
+    """A playable radio program (implements Program)."""
 
-    event_id: str
-    channel_id: str
     title: str
     description: str
-    series_name: str
-    act: str
-    start_at: str
-    end_at: str
     thumbnail_url: str | None
+    series_name: str
+    series_site_id: str
+    act: str
+    channel_id: str
+    stream_url: str
+    start_at: datetime
+    end_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
-class NowOnAirInfo:
-    """Now-on-air information for a single channel."""
+class LiveProgram(RadioProgram):
+    """A live broadcast program."""
+
+    event_id: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class OndemandProgram(RadioProgram):
+    """An on-demand episode with a playable stream."""
+
+    episode_id: str = ""
+    closed_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LiveInfo:
+    """Live broadcast info for a single channel (previous/present/following)."""
 
     channel_id: str
     channel_name: str
-    previous: NowOnAirProgram | None
-    present: NowOnAirProgram
-    following: NowOnAirProgram | None
-
-
-@dataclass(frozen=True, slots=True)
-class OndemandCorner:
-    """A corner (sub-section) of an on-demand series."""
-
-    corner_id: str
-    corner_site_id: str
-    title: str
-    series_site_id: str
+    previous: LiveProgram | None
+    present: LiveProgram
+    following: LiveProgram | None
 
 
 @dataclass(frozen=True, slots=True)
 class OndemandSeries:
-    """An on-demand series from new arrivals."""
+    """An on-demand series catalog entry (implements Program)."""
 
-    series_id: str
-    site_id: str
     title: str
     description: str
-    radio_broadcast: str  # e.g. "R1", "FM", "R1,FM"
     thumbnail_url: str | None
-    corners: list[OndemandCorner]
-
-
-@dataclass(frozen=True, slots=True)
-class OndemandEpisode:
-    """A single on-demand episode with a playable stream."""
-
-    episode_id: str
-    title: str
-    description: str
-    stream_url: str
-    onair_date: str
-    closed_at: str
-    thumbnail_url: str | None
+    series_site_id: str
     series_name: str
-    act: str
+    radio_broadcast: str
+    corner_site_id: str
+    corner_name: str = ""
 
 
 @dataclass(frozen=True, slots=True)
-class OndemandSeriesDetail:
-    """Full detail for a series corner, including its episodes."""
+class Genre:
+    """An on-demand genre."""
 
-    series_title: str
-    corner_title: str
-    thumbnail_url: str | None
-    episodes: list[OndemandEpisode]
+    genre: str
+    name: str
+
+
+Kana = Literal["a", "k", "s", "t", "n", "h", "m", "y", "r", "w"]

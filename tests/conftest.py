@@ -1,5 +1,6 @@
 """Shared test fixtures."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -22,23 +23,17 @@ def config_no_r2_xml_bytes() -> bytes:
 @pytest.fixture
 def new_arrivals_json() -> dict:
     """Load the new arrivals JSON fixture."""
-    import json
-
     return json.loads((FIXTURES_DIR / "new_arrivals.json").read_text())
 
 
 @pytest.fixture
 def series_detail_json() -> dict:
     """Load the series detail JSON fixture."""
-    import json
-
     return json.loads((FIXTURES_DIR / "series_detail.json").read_text())
 
 
 @pytest.fixture
-def now_on_air_json() -> dict:
-    """Load the now-on-air JSON fixture."""
-    import json
-
-    return json.loads((FIXTURES_DIR / "now_on_air.json").read_text())
+def live_programs_json() -> dict:
+    """Load the live programs JSON fixture."""
+    return json.loads((FIXTURES_DIR / "live_programs.json").read_text())
 

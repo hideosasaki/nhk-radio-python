@@ -5,24 +5,34 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, Callable
-from datetime import datetime, timezone
+from dataclasses import replace
+from datetime import UTC, date, datetime
 
 import aiohttp
 
 from .config import RadiruConfig, fetch_config
 from .const import DEFAULT_AREA
 from .errors import ConfigFetchError, NhkRadioError
-from .live import get_area, get_areas as _get_areas
-from .live import get_channels_for_area, get_stream_url
+from .live import fetch_live_programs, get_area, get_channels_for_area
+from .live import get_areas as _get_areas
 from .models import (
     Area,
     Channel,
-    NowOnAirInfo,
+    Genre,
+    Kana,
+    LiveInfo,
+    OndemandProgram,
     OndemandSeries,
-    OndemandSeriesDetail,
 )
-from .nowonair import fetch_now_on_air
-from .ondemand import fetch_new_arrivals, fetch_series
+from .ondemand import (
+    fetch_genres,
+    fetch_ondemand_by_date,
+    fetch_ondemand_by_genre,
+    fetch_ondemand_by_kana,
+    fetch_ondemand_new_arrivals,
+    fetch_ondemand_programs,
+    fetch_ondemand_search,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,11 +61,11 @@ class NhkRadioClient:
     async def _ensure_config(self) -> RadiruConfig:
         """Lazy-load config on first access."""
         if self._config is None:
-            await self.refresh_config()
+            await self.refresh()
         assert self._config is not None
         return self._config
 
-    async def refresh_config(self) -> None:
+    async def refresh(self) -> None:
         """Fetch config_web.xml and rebuild internal state.
 
         Called automatically on first use; call manually to force refresh.
@@ -79,11 +89,6 @@ class NhkRadioClient:
         config = await self._ensure_config()
         return get_channels_for_area(config, self._area)
 
-    async def get_stream_url(self, channel_id: str) -> str:
-        """Return the HLS m3u8 URL for a live channel."""
-        config = await self._ensure_config()
-        return get_stream_url(config, self._area, channel_id)
-
     # --- On-demand (聞き逃し) ---
 
     async def get_ondemand_new_arrivals(
@@ -99,9 +104,8 @@ class NhkRadioClient:
                      Matches against the radio_broadcast field
                      which may contain multiple channels (e.g. "R1,FM").
             filter_fn: Custom filter function applied to each series.
-                       Useful for keyword search, regex matching, etc.
         """
-        result = await fetch_new_arrivals(self._session)
+        result = await fetch_ondemand_new_arrivals(self._session)
         if channel is not None:
             ch_upper = channel.upper()
             result = [
@@ -112,28 +116,85 @@ class NhkRadioClient:
             result = [s for s in result if filter_fn(s)]
         return result
 
-    async def get_ondemand_series(
-        self, site_id: str, corner_site_id: str
-    ) -> OndemandSeriesDetail:
+    async def get_ondemand_programs(
+        self, series_site_id: str, corner_site_id: str
+    ) -> list[OndemandProgram]:
         """Return episodes for a specific on-demand series corner."""
-        return await fetch_series(self._session, site_id, corner_site_id)
+        return await fetch_ondemand_programs(
+            self._session, series_site_id, corner_site_id
+        )
 
-    # --- Now on air (NOA) ---
+    async def search_ondemand(
+        self, keyword: str
+    ) -> list[OndemandSeries]:
+        """Search on-demand series by keyword."""
+        return await fetch_ondemand_search(self._session, keyword)
 
-    async def get_now_on_air(self) -> dict[str, NowOnAirInfo]:
-        """Return now-on-air program info for all channels.
+    async def get_genres(self) -> list[Genre]:
+        """Return the list of on-demand genres."""
+        return await fetch_genres(self._session)
+
+    async def get_ondemand_by_genre(
+        self, genre: str
+    ) -> list[OndemandSeries]:
+        """Return on-demand series filtered by genre."""
+        return await fetch_ondemand_by_genre(self._session, genre)
+
+    async def get_ondemand_by_kana(
+        self, kana: Kana
+    ) -> list[OndemandSeries]:
+        """Return on-demand series filtered by kana initial."""
+        return await fetch_ondemand_by_kana(self._session, kana)
+
+    async def get_ondemand_by_date(
+        self, onair_date: date
+    ) -> list[OndemandSeries]:
+        """Return on-demand corners by broadcast date."""
+        return await fetch_ondemand_by_date(
+            self._session, onair_date.strftime("%Y%m%d")
+        )
+
+    # --- Live programs ---
+
+    async def get_live_programs(self) -> dict[str, LiveInfo]:
+        """Return live program info for all channels.
 
         Keys are SDK channel ids ("r1", "r2", "fm").
+        LiveProgram instances have stream_url injected from config.
         """
         config = await self._ensure_config()
         area = get_area(config, self._area)
-        return await fetch_now_on_air(self._session, area.areakey)
+        result = await fetch_live_programs(self._session, area.areakey)
 
-    async def on_program_change(
+        # Inject stream_url from config into each LiveProgram.
+        for ch_id, info in result.items():
+            channel = area.get_channel(ch_id)
+            if channel is None:
+                continue
+            url = channel.stream_url
+            result[ch_id] = LiveInfo(
+                channel_id=info.channel_id,
+                channel_name=info.channel_name,
+                previous=(
+                    replace(info.previous, stream_url=url)
+                    if info.previous
+                    else None
+                ),
+                present=replace(info.present, stream_url=url),
+                following=(
+                    replace(info.following, stream_url=url)
+                    if info.following
+                    else None
+                ),
+            )
+
+        return result
+
+    async def on_live_program_change(
         self,
         channel_id: str | None = None,
-    ) -> AsyncGenerator[NowOnAirInfo, None]:
-        """Yield NowOnAirInfo whenever the current program changes.
+    ) -> AsyncGenerator[LiveInfo, None]:
+        """Yield LiveInfo whenever the current program changes.
 
         Instead of polling at a fixed interval, this method sleeps until the
         current program's end time and then yields the previously fetched
@@ -144,26 +205,29 @@ class NhkRadioClient:
             channel_id: Listen to a specific channel, or None for all.
 
         Yields:
-            NowOnAirInfo each time the present program changes.
+            LiveInfo each time the present program changes.
         """
         config = await self._ensure_config()
         areakey = get_area(config, self._area).areakey
 
         last_event_ids: dict[str, str] = {}
-        # Cache: channel_id -> (present NowOnAirInfo, following NowOnAirProgram | None)
-        cache: dict[str, NowOnAirInfo] = {}
+        cache: dict[str, LiveInfo] = {}
 
         while True:
             # --- Fetch phase: get current info from API ---
             try:
-                all_info = await fetch_now_on_air(self._session, areakey)
+                all_info = await fetch_live_programs(self._session, areakey)
             except NhkRadioError as exc:
-                _LOGGER.warning("Failed to fetch now-on-air info: %s", exc)
+                _LOGGER.warning("Failed to fetch live programs: %s", exc)
                 await asyncio.sleep(_REFRESH_DELAY)
                 continue
 
             if channel_id is not None:
-                targets = {channel_id: all_info[channel_id]} if channel_id in all_info else {}
+                targets = (
+                    {channel_id: all_info[channel_id]}
+                    if channel_id in all_info
+                    else {}
+                )
             else:
                 targets = all_info
 
@@ -180,24 +244,22 @@ class NhkRadioClient:
                 await asyncio.sleep(_FALLBACK_DELAY)
                 continue
 
-            delay = (earliest_end - datetime.now(timezone.utc)).total_seconds()
+            delay = (earliest_end - datetime.now(UTC)).total_seconds()
             if delay > 0:
                 await asyncio.sleep(delay)
 
             # --- Transition phase: yield cached following programs ---
-            new_cache: dict[str, NowOnAirInfo] = {}
+            now = datetime.now(UTC)
+            new_cache: dict[str, LiveInfo] = {}
             for ch_id, info in cache.items():
-                end_at = datetime.fromisoformat(info.present.end_at)
-                if end_at > datetime.now(timezone.utc):
-                    # This channel's program hasn't ended yet
+                if info.present.end_at > now:
                     new_cache[ch_id] = info
                     continue
 
                 if info.following is None:
-                    # No following info; will be refreshed on next API call
                     continue
 
-                transitioned = NowOnAirInfo(
+                transitioned = LiveInfo(
                     channel_id=info.channel_id,
                     channel_name=info.channel_name,
                     previous=info.present,
@@ -214,15 +276,9 @@ class NhkRadioClient:
             await asyncio.sleep(_REFRESH_DELAY)
 
     @staticmethod
-    def _earliest_end_at(cache: dict[str, NowOnAirInfo]) -> datetime | None:
+    def _earliest_end_at(cache: dict[str, LiveInfo]) -> datetime | None:
         """Return the earliest present.end_at across cached channels."""
-        earliest: datetime | None = None
-        for info in cache.values():
-            try:
-                end_at = datetime.fromisoformat(info.present.end_at)
-            except (ValueError, TypeError):
-                continue
-            if earliest is None or end_at < earliest:
-                earliest = end_at
-        return earliest
-
+        return min(
+            (info.present.end_at for info in cache.values()),
+            default=None,
+        )

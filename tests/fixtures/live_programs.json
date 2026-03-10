@@ -10,7 +10,8 @@
       "identifierGroup": {
         "broadcastEventId": "r1-130-2026030969454",
         "radioSeriesName": "ニュース",
-        "serviceId": "r1"
+        "serviceId": "r1",
+        "radioSeriesId": "1K5J894M9V"
       },
       "about": {
         "description": "",
@@ -34,10 +35,11 @@
       "identifierGroup": {
         "broadcastEventId": "r1-130-2026030969455",
         "radioSeriesName": "野村萬斎のラジオで福袋",
-        "serviceId": "r1"
+        "serviceId": "r1",
+        "radioSeriesId": "1K5J894M9V"
       },
       "about": {
-        "description": "野村萬斎，【ゲスト】中村壱太郎",
+        "description": "野村萬斎,【ゲスト】中村壱太郎",
         "partOfSeries": {
           "name": "野村萬斎のラジオで福袋",
           "logo": {
@@ -58,7 +60,8 @@
       "identifierGroup": {
         "broadcastEventId": "r1-130-2026030969456",
         "radioSeriesName": "ニュース・気象情報",
-        "serviceId": "r1"
+        "serviceId": "r1",
+        "radioSeriesId": "1K5J894M9V"
       },
       "about": {
         "description": "",
@@ -85,10 +88,11 @@
       "identifierGroup": {
         "broadcastEventId": "r2-130-2026030969500",
         "radioSeriesName": "NHK高校講座 政治・経済",
-        "serviceId": "r2"
+        "serviceId": "r2",
+        "radioSeriesId": "XZQ76LPZ8V"
       },
       "about": {
-        "description": "【講師】慶應義塾大学訪問教授…髙橋朝子，【きき手】坂井美月",
+        "description": "【講師】慶應義塾大学訪問教授…髙橋朝子,【きき手】坂井美月",
         "partOfSeries": {
           "name": "NHK高校講座 政治・経済",
           "logo": {
@@ -117,7 +121,8 @@
       "identifierGroup": {
         "broadcastEventId": "r3-130-2026030969600",
         "radioSeriesName": "ベストオブクラシック",
-        "serviceId": "r3"
+        "serviceId": "r3",
+        "radioSeriesId": "P3PXKB5GR3"
       },
       "about": {
         "description": "【曲目】弦楽五重奏曲第２番ト長調作品７７（ドボルザーク）",
