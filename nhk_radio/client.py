@@ -156,6 +156,29 @@ class NhkRadioClient:
 
     # --- Live programs ---
 
+    @staticmethod
+    def _inject_stream_url(info: LiveInfo) -> LiveInfo:
+        """Inject the channel's HLS stream URL into each LiveProgram.
+
+        The NOA API does not provide stream URLs, so they must be
+        filled in from the channel's config_web.xml data.
+        """
+        url = info.channel.stream_url
+        return replace(
+            info,
+            previous=(
+                replace(info.previous, stream_url=url)
+                if info.previous
+                else None
+            ),
+            present=replace(info.present, stream_url=url),
+            following=(
+                replace(info.following, stream_url=url)
+                if info.following
+                else None
+            ),
+        )
+
     async def get_live_programs(self) -> dict[str, LiveInfo]:
         """Return live program info for all channels.
 
@@ -166,23 +189,8 @@ class NhkRadioClient:
         area = get_area(config, self._area)
         result = await fetch_live_programs(self._session, area)
 
-        # Inject stream_url from config into each LiveProgram.
         for ch_id, info in result.items():
-            url = info.channel.stream_url
-            result[ch_id] = replace(
-                info,
-                previous=(
-                    replace(info.previous, stream_url=url)
-                    if info.previous
-                    else None
-                ),
-                present=replace(info.present, stream_url=url),
-                following=(
-                    replace(info.following, stream_url=url)
-                    if info.following
-                    else None
-                ),
-            )
+            result[ch_id] = self._inject_stream_url(info)
 
         return result
 
@@ -228,6 +236,7 @@ class NhkRadioClient:
                 targets = all_info
 
             for ch_id, info in targets.items():
+                info = self._inject_stream_url(info)
                 cache[ch_id] = info
                 current_id = info.present.event_id
                 if last_event_ids.get(ch_id) != current_id:
