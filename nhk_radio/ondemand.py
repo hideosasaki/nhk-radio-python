@@ -197,11 +197,30 @@ def _parse_aa_datetimes(aa_contents_id: str) -> tuple[datetime, datetime]:
     return EPOCH, EPOCH
 
 
+# Regex for Japanese date: "2026年3月15日(日)午前1:00配信終了"
+_JA_DATETIME_RE = re.compile(
+    r"(\d{4})年(\d{1,2})月(\d{1,2})日\(.\)(午前|午後)(\d{1,2}):(\d{2})"
+)
+
+
 def _parse_datetime(value: str) -> datetime | None:
-    """Parse an ISO 8601 or date string, returning None on failure."""
+    """Parse an ISO 8601 or Japanese date string, returning None on failure."""
     if not value:
         return None
     try:
         return datetime.fromisoformat(value)
     except (ValueError, TypeError):
-        return None
+        pass
+    m = _JA_DATETIME_RE.search(value)
+    if m:
+        year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        hour = int(m.group(5))
+        minute = int(m.group(6))
+        if m.group(4) == "午後" and hour != 12:
+            hour += 12
+        elif m.group(4) == "午前" and hour == 12:
+            hour = 0
+        from zoneinfo import ZoneInfo
+
+        return datetime(year, month, day, hour, minute, tzinfo=ZoneInfo("Asia/Tokyo"))
+    return None

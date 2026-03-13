@@ -42,7 +42,7 @@ def test_parse_ondemand_programs(series_detail_json: dict) -> None:
     assert ep.episode_id
     assert isinstance(ep.start_at, datetime)
     assert isinstance(ep.end_at, datetime)
-    assert ep.closed_at is None or isinstance(ep.closed_at, datetime)
+    assert isinstance(ep.closed_at, datetime)
     assert ep.series_name
     assert ep.act is not None
 
